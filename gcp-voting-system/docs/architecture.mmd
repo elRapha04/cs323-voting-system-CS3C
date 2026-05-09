@@ -1,0 +1,22 @@
+graph LR
+    subgraph Edge["Edge Layer (group members)"]
+        E1[Edge Node 1]
+        E2[Edge Node 2]
+        E3[Edge Node N]
+    end
+
+    subgraph Cloud["Google Cloud Platform"]
+        API[Cloud Run<br/>Ingestion API<br/>/vote]
+        TOPIC[(Pub/Sub<br/>vote-topic)]
+        SUB[(Pub/Sub<br/>vote-sub)]
+        WORKER[Cloud Run<br/>Worker Service]
+        FS[(Firestore<br/>votes collection)]
+    end
+
+    E1 -- HTTPS POST --> API
+    E2 -- HTTPS POST --> API
+    E3 -- HTTPS POST --> API
+    API -- publish --> TOPIC
+    TOPIC --> SUB
+    SUB -- pull --> WORKER
+    WORKER -- idempotent set<br/>doc_id = user_id_poll_id --> FS
