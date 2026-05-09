@@ -1,0 +1,4 @@
+google-cloud-pubsub==2.23.0
+google-cloud-firestore==2.18.0
+flask==3.0.3
+gunicorn==22.0.0
