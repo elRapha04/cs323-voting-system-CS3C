@@ -1,78 +1,47 @@
-# Distributed Voting System
-### CS323 – Parallel and Distributed Computing | Final Term Activity
+# Distributed Voting System  
+CS323 – Parallel and Distributed Computing
 
-A cloud-based distributed voting system implemented on **Google Cloud Platform**, integrating Edge Nodes, Cloud Run, Pub/Sub, Worker Services, and Firestore to demonstrate real-world distributed computing concepts.
-
----
-
-## System Architecture
-
-```
-Edge Nodes  →  Cloud Run (API)  →  Pub/Sub (Queue)  →  Worker Service  →  Firestore (DB)
-```
-
-| Component | Role |
-|---|---|
-| Edge Nodes | Generate and send vote requests |
-| Cloud Run | Receives incoming vote API requests |
-| Pub/Sub | Acts as message buffer between API and worker |
-| Worker Service | Processes messages from the queue |
-| Firestore | Stores final vote results |
+This project is a distributed voting system that simulates how real-world cloud systems handle data using multiple independent components. Instead of processing everything in one place, the system splits responsibilities across different services so they can run in parallel and communicate asynchronously.
 
 ---
 
-## Key Concepts Demonstrated
+## System Overview and Architecture
 
-- **Parallel processing** – multiple votes handled simultaneously instead of one-by-one
-- **Asynchronous communication** – messages travel through Pub/Sub before reaching the database
-- **Eventual consistency** – Firestore updates complete after short delays, not instantly
-- **Fault tolerance** – temporary service failures don't stop the whole system
-- **Scalability vs. latency tradeoff** – higher throughput can introduce queue delays at peak load
+The system follows an event-driven distributed pipeline:
 
----
+Edge Nodes → Cloud Run API → Pub/Sub → Worker Service → Firestore
+
+Each component plays a specific role in the system:
+
+- Edge Nodes simulate users generating votes independently
+- Cloud Run API receives incoming requests and validates them
+- Pub/Sub acts as a message queue that buffers data between services
+- Worker Service processes queued votes and removes duplicates
+- Firestore stores the final processed results
+
+This setup allows the system to handle multiple requests at the same time without relying on a single centralized process. Communication is asynchronous, meaning each service works independently and does not wait for others to finish before continuing. This improves scalability and fault tolerance, but also introduces slight delays due to message queuing and processing.
 
 ## Team Reflections
 
-### Naduma – Performance and Scalability
-During testing, the system worked efficiently with few votes since requests moved quickly through the pipeline. As vote volume increased, Pub/Sub acted as a buffer and kept the system stable. Compared to sequential execution, the distributed setup handled larger workloads much faster. However, increased traffic did introduce delays in Firestore updates due to message accumulation in the queue — showing how scalability improves throughput but can also create latency during peak load.
+### Naduma – Performance and Scalability  
+From a performance standpoint, the system behaved exactly as expected for a distributed setup. At low request volume, everything flowed smoothly and results reached Firestore quickly. The interesting part came during higher load testing — instead of failing, the system stayed functional because Pub/Sub absorbed the incoming traffic. What changed was timing. Firestore updates started to lag slightly due to queued messages. This made the trade-off very clear: distributed systems scale well, but latency becomes more visible when demand spikes.
 
 ---
 
-### Romualdez – Deployment and Configuration
-The biggest lesson was how important proper cloud configuration is in distributed computing. Integrating Cloud Run, Pub/Sub, the worker service, and Firestore required careful setup of IAM permissions and service connections. Debugging was also harder than a local app because the system was spread across multiple cloud services. Once properly configured though, all components operated independently and reliably even under temporary delays.
+### Romualdez – Deployment and Configuration  
+Deploying the system was honestly more challenging than writing the actual code. Most of the difficulty came from making sure all cloud services were correctly connected and had the right permissions. A single missing IAM role or incorrect environment variable would break the whole flow between API, Pub/Sub, and Firestore. It took several iterations of debugging before everything worked properly. Once deployed successfully, though, the system felt very “modular” — each service ran independently, which made the whole architecture easier to reason about after setup.
 
 ---
 
-### Jurial – Distributed Communication Behavior
-Testing gave practical insight into how asynchronous communication works in distributed environments. Votes did not appear in Firestore immediately because messages first passed through Pub/Sub and the worker service. Unlike sequential systems, the distributed setup processed votes asynchronously, meaning some updates appeared later than others. Pub/Sub effectively buffered incoming requests during rapid vote generation, preventing the worker service from being overloaded.
+### Jurial – Distributed Communication Behavior  
+What stood out to me most was the delay between action and result. When a vote is sent from the edge node, it doesn’t immediately appear in the database — it first passes through Pub/Sub and then the worker. This creates a natural delay that doesn’t exist in normal sequential programs. During stress testing with multiple edge nodes, I noticed Pub/Sub effectively smoothing out bursts of traffic. Instead of overwhelming the worker, messages were queued and processed gradually. It really highlighted how distributed systems rely on asynchronous flow rather than direct execution.
 
 ---
 
-### Espina – Failure Recovery and Reliability
-The distributed architecture proved more reliable and resilient than centralized execution. During testing, some services experienced temporary delays, yet the system kept functioning because Pub/Sub stored pending messages until the worker service could process them. In a sequential system, a failure in one part stops everything. Here, Firestore updates were eventually completed even after short delays, demonstrating eventual consistency and the value of message queues in maintaining system stability.
+### Espina – Failure Recovery and Reliability  
+The system’s behavior during failure testing was the most convincing part of the whole experiment. When the worker service was intentionally stopped, the rest of the system continued running normally. Edge nodes still sent votes, and Pub/Sub simply held the messages in queue. After restarting the worker, processing resumed automatically without any data loss. This showed how fault tolerance is built into the architecture itself rather than manually handled. It also demonstrated why message queues are essential in ensuring reliability in distributed systems.
 
 ---
 
-### Palongpalong – Practical Learning Experience
-Before this activity, distributed computing was mainly theoretical. Observing the actual interaction between all components made the concepts much clearer. Distributed execution improved the system's ability to handle multiple simultaneous requests, but it also made debugging harder since tasks ran asynchronously across several services. Monitoring logs from different services became necessary to trace where issues originated. The activity showed how distributed systems offer better scalability and flexibility for handling larger workloads.
-
----
-
-## Observations Summary
-
-| Scenario | Behavior Observed |
-|---|---|
-| Low traffic | Fast, smooth pipeline from edge to Firestore |
-| High traffic | Pub/Sub buffered excess messages; slight Firestore delay |
-| Service delay | System stayed online; messages queued until processed |
-| vs. Sequential | Distributed was significantly faster at scale |
-
----
-
-## Tech Stack
-
-- Google Cloud Run
-- Google Pub/Sub
-- Google Firestore
-- Python / Node.js Worker Service
-- GCP IAM & Service Accounts
+### Palongpalong – Practical Learning Experience  
+This activity made distributed computing feel a lot less abstract. Before this, concepts like queues, workers, and edge nodes were just theoretical ideas from lectures. But seeing the full pipeline working in real time made it easier to understand how everything connects. One challenge I kept noticing was how hard debugging becomes when everything is asynchronous — logs are scattered across services, so you can’t rely on a single execution flow anymore. Still, it clearly showed why distributed systems are used: they handle scale better, even if they are more complex to manage.
